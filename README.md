@@ -1,52 +1,53 @@
 # alita-agent
 
-Agente conversacional (Google ADK) que atua como chatbot de atendimento para o e-commerce,
-consultando produtos, pedidos e pagamentos através da API REST do projeto (`../ecommerce-api`).
+A conversational agent (Google ADK) that acts as a customer support chatbot for the e-commerce
+store, looking up products, orders, and payments through the project's REST API
+(`../ecommerce-api`).
 
-## Pré-requisitos
+## Prerequisites
 
-- Python 3.x com `google-adk` e `httpx` instalados (`pip install google-adk httpx`)
-- A API do e-commerce rodando (`docker-compose up` em `../ecommerce-api`)
-- Um usuário já registrado na API (`POST /api/v1/auth/register`) para o agente usar no login
-- Uma `GOOGLE_API_KEY` válida (Gemini API)
+- Python 3.x with `google-adk` and `httpx` installed (`pip install google-adk httpx`)
+- The e-commerce API running (`docker-compose up` in `../ecommerce-api`)
+- A user already registered in the API (`POST /api/v1/auth/register`) for the agent to log in as
+- A valid `GOOGLE_API_KEY` (Gemini API)
 
-## Configuração
+## Configuration
 
-Crie/edite `alita_agent/.env`:
+Create/edit `alita_agent/.env`:
 
 ```
 GOOGLE_GENAI_USE_ENTERPRISE=0
-GOOGLE_API_KEY=<sua chave>
+GOOGLE_API_KEY=<your key>
 ECOMMERCE_API_URL=http://localhost:8080
 ECOMMERCE_AGENT_EMAIL=demo@example.com
 ECOMMERCE_AGENT_PASSWORD=Demo123!
 ```
 
-## Rodando
+## Running
 
 ```bash
-# Modo terminal (REPL)
+# Terminal mode (REPL)
 adk run alita_agent
 
-# Modo web (UI para inspecionar chamadas de tool)
+# Web mode (UI for inspecting tool calls)
 adk web
 ```
 
-## Estrutura
+## Structure
 
 ```
 alita_agent/
-  agent.py              # root_agent (modelo Gemini + instruction + tools)
-  ecommerce_client.py    # client HTTP autenticado (login/refresh de JWT)
-  tools.py                # tools expostas ao LLM (busca de produtos, pedidos, pagamentos)
-  .env                     # credenciais e config local (não versionado)
+  agent.py              # root_agent (Gemini model + instruction + tools)
+  ecommerce_client.py    # authenticated HTTP client (JWT login/refresh)
+  tools.py                # tools exposed to the LLM (product search, orders, payments)
+  .env                     # local credentials and config (not committed)
 ```
 
-## Limitações atuais
+## Current limitations
 
-- Apenas tools de leitura (sem carrinho/checkout/cancelamento) — ações que alteram dados não estão
-  implementadas ainda.
-- O agente loga uma única vez com uma conta fixa definida no `.env`, compartilhada por todas as
-  conversas — ainda não autentica como o usuário real logado na loja.
+- Only read-only tools (no cart/checkout/cancellation) — actions that mutate data are not
+  implemented yet.
+- The agent logs in once with a single fixed account defined in `.env`, shared across every
+  conversation — it does not yet authenticate as the actual logged-in storefront user.
 
-Mais detalhes de arquitetura em [CLAUDE.md](./CLAUDE.md).
+More architecture details in [CLAUDE.md](./CLAUDE.md).

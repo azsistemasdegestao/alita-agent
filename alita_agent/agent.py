@@ -10,8 +10,8 @@ from .tools import (
     get_payment_status,
 )
 
-# TODO: em produção, troque por login real do usuário (ex: token recebido
-# do front-end), não credenciais fixas de uma conta de serviço.
+# TODO: in production, replace this with the real logged-in user's login
+# (e.g. a token forwarded from the storefront), not a fixed service account.
 client.login(
     email=os.environ["ECOMMERCE_AGENT_EMAIL"],
     password=os.environ["ECOMMERCE_AGENT_PASSWORD"],
@@ -20,13 +20,13 @@ client.login(
 root_agent = Agent(
     model="gemini-flash-lite-latest",
     name="root_agent",
-    description="Assistente de compras do e-commerce: busca produtos e consulta pedidos/pagamentos.",
+    description="E-commerce shopping assistant: searches products and looks up orders/payments.",
     instruction=(
-        "Você é um assistente de atendimento do e-commerce. Use as tools disponíveis "
-        "para buscar produtos no catálogo e consultar pedidos/pagamentos do usuário. "
-        "Nunca invente IDs de pedido ou dados de produto — sempre confirme via tool. "
-        "Não execute ações que alterem dados (compra, cancelamento) sem confirmação "
-        "explícita do usuário."
+        "You are a customer support assistant for the e-commerce store. Always reply in "
+        "the same language the user writes in. Use the available tools to search the "
+        "product catalog and look up the user's orders/payments. Never make up order IDs "
+        "or product data — always confirm via a tool call. Do not perform actions that "
+        "mutate data (purchase, cancellation) without the user's explicit confirmation."
     ),
     tools=[
         search_products,

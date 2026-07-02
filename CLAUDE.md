@@ -26,9 +26,16 @@ uvicorn alita_agent.api:app --reload --port 8001
 # want CORS to work end-to-end, frontend) must already be up first — same
 # convention frontend's own docker-compose.yml follows.
 docker-compose up --build
+
+# Install dev deps (pytest, pytest-asyncio, respx) and run the test suite
+pip install -r requirements-dev.txt
+pytest                    # runs both unit and integration
+pytest tests/unit         # no external dependencies (no network, no API key)
+pytest tests/integration  # requires a real GOOGLE_API_KEY in alita_agent/.env
+                          # (skipped automatically otherwise)
 ```
 
-There is no test suite or lint config yet. Dependencies are pinned in `requirements.txt`
+There is no lint config yet. Dependencies are pinned in `requirements.txt`
 (`google-adk`, `httpx`, `fastapi`, `uvicorn`, `python-dotenv`) for the Docker build; outside Docker
 they're still installed directly into the system/venv Python (`pip install -r requirements.txt`
 works there too). Running any file with plain `python` (instead of `adk run`/`adk web`) does **not**
@@ -80,6 +87,20 @@ order, cancel order, request payment) are intentionally not exposed yet — `roo
 instruction explicitly forbids taking such actions without explicit user confirmation, and no tool
 for them currently exists. Add mutating tools deliberately, not as a side effect of adding a new
 read tool.
+
+### Specs and tests
+
+`docs/specs/<feature>/SPEC-<feature>.md` + `CONTEXT-<feature>.md` mirror the spec-driven convention
+used in `../ecommerce-api/docs/specs/`: the SPEC's **Validation Criteria** table (IDs
+`AC-[FEATURE]-U/I-NN`) is the single source of truth tests are generated from — don't add a test
+without a corresponding row, and don't add a row without a test. Features: `auth` (dual-mode
+client auth + `login` tool), `catalog`, `orders`, `payments` (the read tools), `chat-api`
+(the FastAPI endpoint). Tests live under `tests/unit/<feature>/` (no network, `respx`-mocked
+Ecommerce API calls, a `FakeToolContext` stub instead of ADK's real `Context`) and
+`tests/integration/chat_api/` (real ADK `Runner` + real Gemini call, Ecommerce API calls faked via
+monkeypatching `EcommerceClient.request` directly — **not** `respx`, which was found to interfere
+with the real Gemini `httpx` call when both were active in the same process; see
+`docs/specs/chat-api/SPEC-chat-api.md`'s Implementation Notes).
 
 ### Auth model
 

@@ -71,6 +71,17 @@ load `.env` automatically; required env vars must be exported manually or loaded
   — CLI/web-only (see Auth model below), never exposed to the FastAPI chat agent. **Docstrings are
   load-bearing** — ADK passes them to the model to decide when/how to call each tool, so keep them
   accurate and example-driven when adding new ones. All API response fields are `snake_case`.
+- `alita_agent/observability.py` — bootstrap module (Python equivalent of `frontend/src/instrument.mts`),
+  called from `api.py` right after the `FastAPI()` instance is created. Registers a global
+  `TracerProvider` exporting spans via OTLP/gRPC to Jaeger (`JAEGER_ENDPOINT`), instruments FastAPI
+  and `httpx` (so `ecommerce_client.py`'s client and google-adk's own Gemini HTTP calls get traced
+  automatically, no code changes needed there), adds a `GET /metrics` route backed by a real OTel
+  `PrometheusMetricReader`, and attaches a `LokiLoggerHandler` (label `app=alita-agent`) to the root
+  logger so log lines are pushed to Loki alongside traces/metrics. Only covers the FastAPI (`api.py`)
+  path — `adk run`/`adk web` remain uninstrumented by design, since they're local dev/debug entry
+  points, not the production traffic path. All new `opentelemetry-*` packages are pinned to versions
+  compatible with `google-adk`'s own `opentelemetry-api`/`-sdk` ceiling (`<=1.42.1`); bumping past
+  that requires checking google-adk's dependency constraints first.
 - `alita_agent/api.py` — FastAPI app exposing `POST /chat` for the storefront chat widget. Builds
   its own `chat_agent` from `agent.py`'s shared config (same model/instruction/tools, minus
   `login`). Expects an `Authorization: Bearer <jwt>` header (the caller's own token, forwarded
@@ -130,6 +141,12 @@ session state and is used by every subsequent tool call in the conversation.
   `POST /api/v1/auth/register` on the target API first.
 - `FRONTEND_ORIGIN` — origin allowed by `api.py`'s CORS policy for `/chat` (default
   `http://localhost:4200`).
+- `OTEL_SERVICE_NAME` — `service.name` resource attribute reported to Jaeger. Defaults to
+  `alita-agent`.
+- `JAEGER_ENDPOINT` — OTLP/gRPC endpoint for trace export. Defaults to `http://localhost:4317` for
+  host-based runs; `docker-compose.yml` overrides to `http://jaeger:4317`.
+- `LOKI_URL` — Loki push endpoint for logs. Defaults to `http://localhost:3100`; `docker-compose.yml`
+  overrides to `http://loki:3100`.
 
 The target Ecommerce API must be running (`docker-compose up` from `../ecommerce-api`) before the
 agent can call any tool. When running alita-agent itself via `docker-compose up` (this repo's own

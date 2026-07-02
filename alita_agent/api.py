@@ -13,6 +13,7 @@ from google.adk.sessions import InMemorySessionService
 from google.genai import types
 from pydantic import BaseModel
 
+from . import observability
 from .agent import CHAT_TOOLS, DESCRIPTION, INSTRUCTION, MODEL, NAME
 from .ecommerce_client import client
 
@@ -27,6 +28,10 @@ session_service = InMemorySessionService()
 runner = Runner(agent=chat_agent, app_name=APP_NAME, session_service=session_service)
 
 app = FastAPI(title="Alita Agent Chat API")
+# Registra tracer/meter providers e instrumenta FastAPI + httpx globalmente
+# (cobrindo o client de ecommerce_client.py e as chamadas HTTP do google-adk
+# ao Gemini) antes de qualquer requisição ser servida.
+observability.setup(app)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[os.getenv("FRONTEND_ORIGIN", "http://localhost:4200")],
@@ -82,3 +87,4 @@ async def chat(req: ChatRequest, authorization: str = Header(...)) -> ChatRespon
 @app.on_event("shutdown")
 async def _shutdown() -> None:
     await client.aclose()
+    observability.shutdown()

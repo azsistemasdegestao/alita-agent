@@ -28,9 +28,9 @@ session_service = InMemorySessionService()
 runner = Runner(agent=chat_agent, app_name=APP_NAME, session_service=session_service)
 
 app = FastAPI(title="Alita Agent Chat API")
-# Registra tracer/meter providers e instrumenta FastAPI + httpx globalmente
-# (cobrindo o client de ecommerce_client.py e as chamadas HTTP do google-adk
-# ao Gemini) antes de qualquer requisição ser servida.
+# Registers tracer/meter providers and instruments FastAPI + httpx globally
+# (covering ecommerce_client.py's client and google-adk's own HTTP calls to
+# Gemini) before any request is served.
 observability.setup(app)
 app.add_middleware(
     CORSMiddleware,

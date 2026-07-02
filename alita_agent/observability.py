@@ -1,15 +1,15 @@
-"""Bootstrap de observabilidade (traces/metrics/logs) para o FastAPI `api.py`.
+"""Observability bootstrap (traces/metrics/logs) for the FastAPI `api.py`.
 
-Equivalente Python do `frontend/src/instrument.mts`: registra os providers
-globais do OpenTelemetry e instrumenta FastAPI + httpx antes de qualquer
-outro módulo do agente ser importado. `setup()` precisa rodar antes de
-`from .ecommerce_client import client` em `api.py` — `HTTPXClientInstrumentor`
-faz patch global em `httpx.AsyncClient`, então se o client já tiver sido
-importado/criado antes disso, o tracing das chamadas à Ecommerce API não é
-aplicado (falha silenciosa, sem erro).
+Python equivalent of `frontend/src/instrument.mts`: registers the global
+OpenTelemetry providers and instruments FastAPI + httpx before any other
+agent module is imported. `setup()` must run before
+`from .ecommerce_client import client` in `api.py` — `HTTPXClientInstrumentor`
+patches `httpx.AsyncClient` globally, so if the client has already been
+imported/created before this runs, tracing for Ecommerce API calls silently
+does not apply (no error raised).
 
-Cobre apenas o caminho FastAPI (`api.py`, usado em produção/Docker) — os
-entry points `adk run`/`adk web` não passam por aqui, propositalmente.
+Only covers the FastAPI path (`api.py`, used in production/Docker) — the
+`adk run`/`adk web` entry points intentionally do not go through this.
 """
 
 import logging
@@ -43,8 +43,8 @@ def setup(app: FastAPI) -> None:
     trace.set_tracer_provider(tracer_provider)
 
     FastAPIInstrumentor.instrument_app(app)
-    # Patch global do httpx.AsyncClient — cobre `ecommerce_client.py` e também
-    # os spans internos do google-adk que fazem chamadas HTTP ao Gemini.
+    # Global patch of httpx.AsyncClient — covers `ecommerce_client.py` as well
+    # as google-adk's own internal spans for its HTTP calls to Gemini.
     HTTPXClientInstrumentor().instrument()
 
     meter_provider = MeterProvider(resource=resource, metric_readers=[PrometheusMetricReader()])
@@ -56,8 +56,8 @@ def setup(app: FastAPI) -> None:
 
     root_logger = logging.getLogger()
     root_logger.setLevel(logging.INFO)
-    # LokiLoggerHandler faz POST direto na URL informada, sem completar o path
-    # — precisa ser o endpoint de push, não só o host:porta do LOKI_URL.
+    # LokiLoggerHandler POSTs directly to the given URL without appending the
+    # push path itself — it must be the push endpoint, not just LOKI_URL's host:port.
     loki_handler = LokiLoggerHandler(
         url=f"{LOKI_URL}/loki/api/v1/push", labels={"app": "alita-agent"}
     )

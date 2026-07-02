@@ -9,7 +9,7 @@ services:
       - alita_agent/.env
     environment:
       ECOMMERCE_API_URL: http://ecommerce-api:8080
-      FRONTEND_ORIGIN: http://localhost:4200
+      FRONTEND_ORIGIN: http://localhost:4000
       OTEL_SERVICE_NAME: alita-agent
       JAEGER_ENDPOINT: http://jaeger:4317
       LOKI_URL: http://loki:3100

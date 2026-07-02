@@ -1,0 +1,9 @@
+.git
+.claude
+.gitignore
+Dockerfile
+docker-compose.yml
+.dockerignore
+alita_agent/.env
+**/__pycache__
+**/*.pyc

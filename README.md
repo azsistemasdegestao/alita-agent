@@ -39,7 +39,9 @@ adk web
 alita_agent/
   agent.py              # root_agent (Gemini model + instruction + tools)
   ecommerce_client.py    # authenticated HTTP client (JWT login/refresh)
-  tools.py                # tools exposed to the LLM (product search, orders, payments)
+  tools.py                # tools exposed to the LLM (product search, orders, payments, FAQ)
+  faq_rag.py               # RAG engine backing the FAQ tool (in-memory embeddings index)
+  data/faq.json             # FAQ/policy knowledge base indexed by faq_rag.py
   .env                     # local credentials and config (not committed)
 ```
 

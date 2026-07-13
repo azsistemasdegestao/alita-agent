@@ -13,7 +13,7 @@ from google.adk.sessions import InMemorySessionService
 from google.genai import types
 from pydantic import BaseModel
 
-from . import observability
+from . import faq_rag, observability
 from .agent import CHAT_TOOLS, DESCRIPTION, INSTRUCTION, MODEL, NAME
 from .ecommerce_client import client
 
@@ -82,6 +82,13 @@ async def chat(req: ChatRequest, authorization: str = Header(...)) -> ChatRespon
                     reply_text = part.text
 
     return ChatResponse(reply=reply_text)
+
+
+@app.on_event("startup")
+async def _startup() -> None:
+    # Computes the FAQ embeddings once before serving any request, instead of
+    # paying that latency on the first /chat call that needs answer_from_faq.
+    faq_rag.build_index()
 
 
 @app.on_event("shutdown")

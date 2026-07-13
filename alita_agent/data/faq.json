@@ -1,0 +1,26 @@
+[
+  {
+    "question": "Qual é a política de troca e devolução?",
+    "answer": "Você pode solicitar troca ou devolução em até 30 dias corridos após o recebimento do produto, desde que ele esteja em perfeito estado e com a embalagem original. O reembolso é feito pelo mesmo meio de pagamento utilizado na compra."
+  },
+  {
+    "question": "Quanto tempo demora para o pedido chegar?",
+    "answer": "O prazo de entrega varia conforme a região e a modalidade de frete escolhida no checkout, normalmente entre 3 e 10 dias úteis."
+  },
+  {
+    "question": "Quais formas de pagamento são aceitas?",
+    "answer": "Aceitamos cartão de crédito (em até 12x), cartão de débito, Pix e boleto bancário. Pedidos pagos via Pix ou boleto só são processados após a confirmação do pagamento."
+  },
+  {
+    "question": "Como faço para cancelar um pedido?",
+    "answer": "Pedidos ainda não enviados podem ser cancelados diretamente pela sua conta ou falando com o suporte. Depois que o pedido é despachado, o cancelamento vira uma solicitação de devolução após o recebimento."
+  },
+  {
+    "question": "Vocês entregam em todo o Brasil?",
+    "answer": "Sim, entregamos para todos os estados do Brasil. O prazo e o valor do frete são calculados no checkout de acordo com o CEP informado."
+  },
+  {
+    "question": "Os produtos têm garantia?",
+    "answer": "Todos os produtos têm garantia legal de 90 dias contra defeitos de fabricação, além da garantia adicional do fabricante quando aplicável, informada na página de cada produto."
+  }
+]

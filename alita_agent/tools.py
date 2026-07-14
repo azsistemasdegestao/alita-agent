@@ -148,6 +148,23 @@ async def get_payment_status(order_id: str, tool_context: ToolContext) -> dict:
     return {"status": "success", "payment": resp.json()}
 
 
+async def get_my_cart(tool_context: ToolContext) -> dict:
+    """Consulta o carrinho de compras atual do usuário autenticado.
+
+    Use quando o usuário perguntar o que tem no carrinho, quantos itens tem,
+    ou o valor total do carrinho.
+
+    Returns:
+        dict com status e o carrinho ("cart"): itens (produto, quantidade, preço
+        unitário, subtotal), total geral e quantidade de itens. Um carrinho vazio
+        vem com uma lista de itens vazia, não como erro.
+    """
+    resp = await _request("GET", "/api/v1/cart", tool_context)
+    if isinstance(resp, dict):
+        return resp
+    return {"status": "success", "cart": resp.json()}
+
+
 async def answer_from_faq(question: str) -> dict:
     """Busca respostas relevantes na base de FAQ/políticas da loja.
 

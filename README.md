@@ -39,7 +39,7 @@ adk web
 alita_agent/
   agent.py              # root_agent (Gemini model + instruction + tools)
   ecommerce_client.py    # authenticated HTTP client (JWT login/refresh)
-  tools.py                # tools exposed to the LLM (product search, orders, payments, FAQ)
+  tools.py                # tools exposed to the LLM (product search, orders, payments, cart, FAQ)
   faq_rag.py               # RAG engine backing the FAQ tool (in-memory embeddings index)
   data/faq.json             # FAQ/policy knowledge base indexed by faq_rag.py
   .env                     # local credentials and config (not committed)
@@ -47,8 +47,8 @@ alita_agent/
 
 ## Current limitations
 
-- Only read-only tools (no cart/checkout/cancellation) — actions that mutate data are not
-  implemented yet.
+- Only read-only tools (no adding/removing cart items, checkout, cancellation) — actions that
+  mutate data are not implemented yet.
 - The agent logs in once with a single fixed account defined in `.env`, shared across every
   conversation — it does not yet authenticate as the actual logged-in storefront user.
 

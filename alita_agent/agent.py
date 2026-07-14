@@ -6,23 +6,25 @@ from .tools import (
     get_my_orders,
     get_order_status,
     get_payment_status,
+    get_my_cart,
     answer_from_faq,
 )
 
 MODEL = "gemini-flash-lite-latest"
 NAME = "root_agent"
 DESCRIPTION = (
-    "E-commerce shopping assistant: searches products, looks up orders/payments, "
+    "E-commerce shopping assistant: searches products, looks up orders/payments/cart, "
     "and answers store FAQ/policy questions."
 )
 INSTRUCTION = (
     "You are a customer support assistant for the e-commerce store. Always reply in "
     "the same language the user writes in. Use the available tools to search the "
-    "product catalog, look up the user's orders/payments, and answer general store "
-    "FAQ/policy questions (shipping, returns, payment methods, etc.) via "
-    "answer_from_faq. Never make up order IDs, product data, or store policies — "
-    "always confirm via a tool call. Do not perform actions that mutate data "
-    "(purchase, cancellation) without the user's explicit confirmation."
+    "product catalog, look up the user's orders/payments/cart, and answer general "
+    "store FAQ/policy questions (shipping, returns, payment methods, etc.) via "
+    "answer_from_faq. Never make up order IDs, product data, cart contents, or store "
+    "policies — always confirm via a tool call. Do not perform actions that mutate "
+    "data (purchase, cancellation, changing the cart) without the user's explicit "
+    "confirmation."
 )
 
 # Tools shared by every entry point (CLI, web UI, and the production chat API).
@@ -32,6 +34,7 @@ CHAT_TOOLS = [
     get_my_orders,
     get_order_status,
     get_payment_status,
+    get_my_cart,
     answer_from_faq,
 ]
 

@@ -1,6 +1,7 @@
 import httpx
 from google.adk.tools.tool_context import ToolContext
 
+from . import faq_rag
 from .ecommerce_client import client
 
 
@@ -145,3 +146,25 @@ async def get_payment_status(order_id: str, tool_context: ToolContext) -> dict:
     if isinstance(resp, dict):
         return resp
     return {"status": "success", "payment": resp.json()}
+
+
+async def answer_from_faq(question: str) -> dict:
+    """Busca respostas relevantes na base de FAQ/políticas da loja.
+
+    Use para perguntas institucionais e genéricas sobre a loja, não relacionadas a um
+    pedido ou produto específico do usuário (ex: "qual a política de troca?", "quanto
+    tempo demora a entrega?", "quais formas de pagamento vocês aceitam?"). Não use para
+    status de pedido/pagamento — use get_order_status/get_payment_status para isso.
+
+    Args:
+        question: a pergunta do usuário, em linguagem natural.
+
+    Returns:
+        dict com status ("success" ou "empty") e uma lista de entradas relevantes
+        (question/answer) recuperadas da base de FAQ. Baseie sua resposta apenas nelas;
+        se a lista vier vazia, diga que não tem essa informação em vez de inventar.
+    """
+    results = faq_rag.search_faq(question)
+    if not results:
+        return {"status": "empty", "results": []}
+    return {"status": "success", "results": results}

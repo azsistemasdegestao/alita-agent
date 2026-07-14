@@ -1,8 +1,9 @@
 # alita-agent
 
 A conversational agent (Google ADK) that acts as a customer support chatbot for the e-commerce
-store, looking up products, orders, and payments through the project's REST API
-(`../ecommerce-api`).
+store, looking up products, orders, payments, and the shopping cart through the project's REST API
+(`../ecommerce-api`), plus answering store FAQ/policy questions via a small RAG-backed knowledge
+base of its own.
 
 ## Prerequisites
 
@@ -49,7 +50,10 @@ alita_agent/
 
 - Only read-only tools (no adding/removing cart items, checkout, cancellation) — actions that
   mutate data are not implemented yet.
-- The agent logs in once with a single fixed account defined in `.env`, shared across every
-  conversation — it does not yet authenticate as the actual logged-in storefront user.
+- Under `adk run`/`adk web` only, the agent falls back to logging in once with a single fixed
+  account defined in `.env`, shared across the whole conversation (or you can call the `login`
+  tool mid-conversation to act as a specific user instead). The production chat API (`api.py`) is
+  per-user: it forwards the caller's own JWT into every tool call, no shared account involved —
+  see [CLAUDE.md](./CLAUDE.md)'s Auth model section.
 
 More architecture details in [CLAUDE.md](./CLAUDE.md).

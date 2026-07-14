@@ -63,14 +63,25 @@ load `.env` automatically; required env vars must be exported manually or loaded
   when a token is supplied per-call.
 - `alita_agent/tools.py` — the ADK tools (async Python functions) the LLM can call:
   `search_products`, `get_product_details`, `get_my_orders`, `get_order_status`,
-  `get_payment_status`, and `login`. Each of the first five takes a `tool_context: ToolContext`
-  parameter that ADK injects automatically (excluded from the schema shown to the model) and reads
-  the user's access token from `tool_context.state["access_token"]`; each wraps one read-only
-  Ecommerce API endpoint. `login(email, password, tool_context)` calls
-  `EcommerceClient.login()` and writes the resulting token into `tool_context.state["access_token"]`
-  — CLI/web-only (see Auth model below), never exposed to the FastAPI chat agent. **Docstrings are
-  load-bearing** — ADK passes them to the model to decide when/how to call each tool, so keep them
-  accurate and example-driven when adding new ones. All API response fields are `snake_case`.
+  `get_payment_status`, `get_my_cart`, `answer_from_faq`, and `login`. Every tool except
+  `answer_from_faq` takes a `tool_context: ToolContext` parameter that ADK injects automatically
+  (excluded from the schema shown to the model) and reads the user's access token from
+  `tool_context.state["access_token"]`; each wraps one read-only Ecommerce API endpoint.
+  `answer_from_faq` is the exception — it needs no auth token since it never calls the Ecommerce
+  API at all, it queries `faq_rag.py`'s in-memory embeddings index instead. `login(email,
+  password, tool_context)` calls `EcommerceClient.login()` and writes the resulting token into
+  `tool_context.state["access_token"]` — CLI/web-only (see Auth model below), never exposed to the
+  FastAPI chat agent. **Docstrings are load-bearing** — ADK passes them to the model to decide
+  when/how to call each tool, so keep them accurate and example-driven when adding new ones. All
+  API response fields are `snake_case`.
+- `alita_agent/faq_rag.py` — the retrieval engine backing `answer_from_faq`: loads
+  `alita_agent/data/faq.json` (a static, hand-curated FAQ/policy knowledge base — placeholder
+  content, replace with this store's real policies), embeds each entry once via the Gemini
+  embeddings API (`text-embedding-004`), and answers queries by in-memory cosine-similarity
+  ranking (`search_faq`), filtering out matches below `min_similarity` so unrelated questions
+  return no result instead of a misleading one. No vector database — a plain list is enough for a
+  FAQ-sized corpus. `build_index()` runs once at `api.py` startup; under `adk run`/`adk web` it
+  builds lazily on first use. See `docs/specs/faq/SPEC-faq.md` for the retrieval contract.
 - `alita_agent/observability.py` — bootstrap module (Python equivalent of `frontend/src/instrument.mts`),
   called from `api.py` right after the `FastAPI()` instance is created. Registers a global
   `TracerProvider` exporting spans via OTLP/gRPC to Jaeger (`JAEGER_ENDPOINT`), instruments FastAPI
@@ -93,11 +104,11 @@ load `.env` automatically; required env vars must be exported manually or loaded
 
 ### Scope: read-only by design
 
-Only query/read tools are wired up so far. Tools that would mutate state (add to cart, create
-order, cancel order, request payment) are intentionally not exposed yet — `root_agent`'s
-instruction explicitly forbids taking such actions without explicit user confirmation, and no tool
-for them currently exists. Add mutating tools deliberately, not as a side effect of adding a new
-read tool.
+Only query/read tools are wired up so far — including `get_my_cart`, which only *looks at* the
+cart. Tools that would mutate state (adding/removing cart items, create order, cancel order,
+request payment) are intentionally not exposed yet — `root_agent`'s instruction explicitly forbids
+taking such actions without explicit user confirmation, and no tool for them currently exists. Add
+mutating tools deliberately, not as a side effect of adding a new read tool.
 
 ### Specs and tests
 
@@ -105,9 +116,12 @@ read tool.
 used in `../ecommerce-api/docs/specs/`: the SPEC's **Validation Criteria** table (IDs
 `AC-[FEATURE]-U/I-NN`) is the single source of truth tests are generated from — don't add a test
 without a corresponding row, and don't add a row without a test. Features: `auth` (dual-mode
-client auth + `login` tool), `catalog`, `orders`, `payments` (the read tools), `chat-api`
-(the FastAPI endpoint). Tests live under `tests/unit/<feature>/` (no network, `respx`-mocked
-Ecommerce API calls, a `FakeToolContext` stub instead of ADK's real `Context`) and
+client auth + `login` tool), `catalog`, `orders`, `payments`, `cart` (the Ecommerce API read
+tools), `faq` (the RAG-backed `answer_from_faq` tool — self-contained, no Ecommerce API/auth
+dependency), `chat-api` (the FastAPI endpoint). Tests live under `tests/unit/<feature>/` (no
+network, `respx`-mocked Ecommerce API calls for everything except `faq`, which mocks
+`faq_rag.embed_text` directly instead since the embeddings call goes through `google-genai`'s own
+client, not `httpx`; a `FakeToolContext` stub stands in for ADK's real `Context`) and
 `tests/integration/chat_api/` (real ADK `Runner` + real Gemini call, Ecommerce API calls faked via
 monkeypatching `EcommerceClient.request` directly — **not** `respx`, which was found to interfere
 with the real Gemini `httpx` call when both were active in the same process; see

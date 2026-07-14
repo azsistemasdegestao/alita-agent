@@ -77,7 +77,7 @@ load `.env` automatically; required env vars must be exported manually or loaded
 - `alita_agent/faq_rag.py` — the retrieval engine backing `answer_from_faq`: loads
   `alita_agent/data/faq.json` (a static, hand-curated FAQ/policy knowledge base — placeholder
   content, replace with this store's real policies), embeds each entry once via the Gemini
-  embeddings API (`text-embedding-004`), and answers queries by in-memory cosine-similarity
+  embeddings API (`gemini-embedding-001`), and answers queries by in-memory cosine-similarity
   ranking (`search_faq`), filtering out matches below `min_similarity` so unrelated questions
   return no result instead of a misleading one. No vector database — a plain list is enough for a
   FAQ-sized corpus. `build_index()` runs once at `api.py` startup; under `adk run`/`adk web` it

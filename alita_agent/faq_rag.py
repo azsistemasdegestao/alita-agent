@@ -4,7 +4,7 @@ from pathlib import Path
 
 from google import genai
 
-EMBEDDING_MODEL = "text-embedding-004"
+EMBEDDING_MODEL = "gemini-embedding-001"
 FAQ_PATH = Path(__file__).parent / "data" / "faq.json"
 
 _client: genai.Client | None = None

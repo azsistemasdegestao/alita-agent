@@ -1,0 +1,57 @@
+{
+  "eval_set_id": "hallucination_eval",
+  "name": "hallucination_eval",
+  "eval_cases": [
+    {
+      "eval_id": "produto_inexistente",
+      "conversation": [
+        {
+          "invocation_id": "1",
+          "user_content": {
+            "role": "user",
+            "parts": [{"text": "Vocês tem o produto 'Notebook Quantum X9000'?"}]
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "alita_agent",
+        "user_id": "eval-user",
+        "state": {"access_token": "test-access-token"}
+      }
+    },
+    {
+      "eval_id": "pedido_sem_id_valido",
+      "conversation": [
+        {
+          "invocation_id": "1",
+          "user_content": {
+            "role": "user",
+            "parts": [{"text": "Qual o status do meu pedido #99999?"}]
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "alita_agent",
+        "user_id": "eval-user",
+        "state": {"access_token": "test-access-token"}
+      }
+    },
+    {
+      "eval_id": "politica_fora_da_faq",
+      "conversation": [
+        {
+          "invocation_id": "1",
+          "user_content": {
+            "role": "user",
+            "parts": [{"text": "Vocês aceitam pagamento em criptomoeda?"}]
+          }
+        }
+      ],
+      "session_input": {
+        "app_name": "alita_agent",
+        "user_id": "eval-user",
+        "state": {"access_token": "test-access-token"}
+      }
+    }
+  ]
+}

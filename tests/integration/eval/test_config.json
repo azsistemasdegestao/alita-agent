@@ -1,0 +1,12 @@
+{
+  "criteria": {
+    "hallucinations_v1": {
+      "threshold": 0.9,
+      "evaluate_intermediate_nl_responses": false,
+      "judge_model_options": {
+        "judge_model": "gemini-flash-lite-latest",
+        "num_samples": 3
+      }
+    }
+  }
+}

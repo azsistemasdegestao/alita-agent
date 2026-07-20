@@ -13,7 +13,7 @@ from google.adk.sessions import InMemorySessionService
 from google.genai import types
 from pydantic import BaseModel
 
-from . import faq_rag, observability
+from . import faq_rag, grounding_check, observability
 from .agent import CHAT_TOOLS, DESCRIPTION, INSTRUCTION, MODEL, NAME
 from .ecommerce_client import client
 
@@ -70,6 +70,7 @@ async def chat(req: ChatRequest, authorization: str = Header(...)) -> ChatRespon
     content = types.Content(role="user", parts=[types.Part(text=req.message)])
 
     reply_text = ""
+    tool_activity: list[dict] = []
     async for event in runner.run_async(
         user_id=req.user_id,
         session_id=req.session_id,
@@ -80,6 +81,18 @@ async def chat(req: ChatRequest, authorization: str = Header(...)) -> ChatRespon
             for part in event.content.parts:
                 if part.text:
                     reply_text = part.text
+                if part.function_call:
+                    tool_activity.append(
+                        {"tool_call": part.function_call.model_dump(exclude_none=True)}
+                    )
+                if part.function_response:
+                    tool_activity.append(
+                        {"tool_result": part.function_response.model_dump(exclude_none=True)}
+                    )
+
+    is_grounded, _ = await grounding_check.check_grounding(tool_activity, reply_text)
+    if not is_grounded:
+        reply_text = grounding_check.FALLBACK_REPLY
 
     return ChatResponse(reply=reply_text)
 

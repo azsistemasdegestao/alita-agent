@@ -22,7 +22,18 @@ APP_NAME = "alita_agent"
 # Separate Agent instance from `root_agent` (used by adk run/web): it omits
 # the `login` tool, since production chat traffic authenticates via the
 # request's Authorization header, not a password typed into the chat.
-chat_agent = Agent(model=MODEL, name=NAME, description=DESCRIPTION, instruction=INSTRUCTION, tools=CHAT_TOOLS)
+# Low temperature keeps both tool-call decisions and the final narration of
+# tool results close to the most-supported wording, reducing (not
+# eliminating) the chance of inventing details when describing what a tool
+# returned — complements grounding_check.py, which catches what gets through.
+chat_agent = Agent(
+    model=MODEL,
+    name=NAME,
+    description=DESCRIPTION,
+    instruction=INSTRUCTION,
+    tools=CHAT_TOOLS,
+    generate_content_config=types.GenerateContentConfig(temperature=0.2),
+)
 
 session_service = InMemorySessionService()
 runner = Runner(agent=chat_agent, app_name=APP_NAME, session_service=session_service)

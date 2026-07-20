@@ -27,12 +27,16 @@ uvicorn alita_agent.api:app --reload --port 8001
 # convention frontend's own docker-compose.yml follows.
 docker-compose up --build
 
-# Install dev deps (pytest, pytest-asyncio, respx) and run the test suite
+# Install dev deps (pytest, pytest-asyncio, respx, google-adk[eval]) and run the test suite
 pip install -r requirements-dev.txt
 pytest                    # runs both unit and integration
 pytest tests/unit         # no external dependencies (no network, no API key)
 pytest tests/integration  # requires a real GOOGLE_API_KEY in alita_agent/.env
                           # (skipped automatically otherwise)
+
+# Offline hallucination eval (also under tests/integration/, same GOOGLE_API_KEY
+# requirement/skip) — see "Hallucination safeguards" below
+pytest tests/integration/eval -v
 ```
 
 There is no lint config yet. Dependencies are pinned in `requirements.txt`
@@ -95,12 +99,46 @@ load `.env` automatically; required env vars must be exported manually or loaded
   that requires checking google-adk's dependency constraints first.
 - `alita_agent/api.py` — FastAPI app exposing `POST /chat` for the storefront chat widget. Builds
   its own `chat_agent` from `agent.py`'s shared config (same model/instruction/tools, minus
-  `login`). Expects an `Authorization: Bearer <jwt>` header (the caller's own token, forwarded
-  as-is — the API never logs in) and a JSON body of `{session_id, user_id, message}`. Uses ADK's
-  `Runner` + `InMemorySessionService` to keep conversation history per `(user_id, session_id)`, and
-  seeds/refreshes `access_token` into that session's state on every turn via `state_delta` so tools
-  can read it — this is what makes each chat session act as the actual calling user instead of a
-  shared service account.
+  `login`), with `generate_content_config=GenerateContentConfig(temperature=0.2)` — lower than the
+  Gemini default, to bias both tool-call decisions and the narration of tool results toward the
+  most-supported wording (see "Hallucination safeguards" below). Expects an `Authorization: Bearer
+  <jwt>` header (the caller's own token, forwarded as-is — the API never logs in) and a JSON body
+  of `{session_id, user_id, message}`. Uses ADK's `Runner` + `InMemorySessionService` to keep
+  conversation history per `(user_id, session_id)`, and seeds/refreshes `access_token` into that
+  session's state on every turn via `state_delta` so tools can read it — this is what makes each
+  chat session act as the actual calling user instead of a shared service account. After the
+  `Runner` loop produces the final reply, it's passed through `grounding_check.check_grounding()`
+  before being returned — see below.
+- `alita_agent/grounding_check.py` — post-response guardrail called from `api.py`'s `/chat` handler
+  on every turn. Makes one extra Gemini call (judge) comparing the agent's final reply against that
+  turn's tool calls/results (collected from the `Runner` event stream) and returns `GROUNDED` or
+  `UNGROUNDED: <reason>`. If ungrounded, `api.py` swaps the reply for `grounding_check.FALLBACK_REPLY`
+  instead of returning the original to the customer. Deliberately a single-call check, not the
+  full sentence-by-sentence pipeline `hallucinations_v1` uses in the offline eval (see below) — that
+  one is thorough but too slow/costly to run inline on every real chat message. **Fails open**: if
+  the judge call itself errors (network, quota), the original reply is returned unchecked rather than
+  blocking the whole chat over a guardrail failure.
+
+### Hallucination safeguards
+
+Three independent layers, from cheapest/weakest to most expensive/strongest:
+
+1. **Prompt-level grounding** — `INSTRUCTION` (`agent.py`) explicitly forbids inventing order IDs,
+   product data, cart contents, or store policies, and `answer_from_faq`'s docstring tells the model
+   to say it doesn't know rather than fill in gaps when `faq_rag.search_faq` returns no results
+   (below `min_similarity`). Free, but relies entirely on the model following instructions.
+2. **Low temperature** (`api.py`, `chat_agent`'s `generate_content_config`) — statistically biases
+   generation toward the most-supported wording. Free (no extra call), but only reduces the odds of
+   hallucinating, doesn't catch it.
+3. **Runtime grounding check** (`grounding_check.py`) — one extra Gemini judge call per `/chat` turn,
+   blocking: replaces ungrounded replies with a safe fallback before they reach the customer. Costs
+   latency + an API call per turn; fails open on judge errors (see above).
+
+Additionally, `tests/integration/eval/` holds an **offline** eval set (`hallucination.test.json` +
+`test_config.json`) built on ADK's `hallucinations_v1` metric — a more thorough (and slower/costlier)
+LLM-as-judge that segments the response sentence-by-sentence and checks each one against that turn's
+tool context. Meant to be run manually/in CI, not inline in production; requires the
+`google-adk[eval]` extra (in `requirements-dev.txt`).
 
 ### Scope: read-only by design
 
@@ -126,6 +164,12 @@ client, not `httpx`; a `FakeToolContext` stub stands in for ADK's real `Context`
 monkeypatching `EcommerceClient.request` directly — **not** `respx`, which was found to interfere
 with the real Gemini `httpx` call when both were active in the same process; see
 `docs/specs/chat-api/SPEC-chat-api.md`'s Implementation Notes).
+
+`grounding_check.py` doesn't have a SPEC/CONTEXT pair (it's a cross-cutting safeguard, not a
+feature). Its unit tests live in `tests/unit/grounding/`, mocking `grounding_check._get_client()`
+the same way `faq_rag` tests mock `embed_text` — no real Gemini call. The offline hallucination eval
+set lives in `tests/integration/eval/` (see "Hallucination safeguards" above), sibling to
+`tests/integration/chat_api/` rather than under `tests/unit/`, since it makes real Gemini calls.
 
 ### Auth model
 

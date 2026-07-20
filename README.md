@@ -42,9 +42,19 @@ alita_agent/
   ecommerce_client.py    # authenticated HTTP client (JWT login/refresh)
   tools.py                # tools exposed to the LLM (product search, orders, payments, cart, FAQ)
   faq_rag.py               # RAG engine backing the FAQ tool (in-memory embeddings index)
+  grounding_check.py        # post-response hallucination guardrail (see below), used by api.py
   data/faq.json             # FAQ/policy knowledge base indexed by faq_rag.py
   .env                     # local credentials and config (not committed)
 ```
+
+## Hallucination safeguards
+
+The agent is prompted to never invent order/product/policy data, runs at a low sampling
+temperature, and every `/chat` reply passes through a runtime grounding check
+(`grounding_check.py`) that blocks and replaces replies not backed by that turn's tool results.
+There's also an offline eval set (`tests/integration/eval/`) built on ADK's `hallucinations_v1`
+metric for deeper, sentence-level checks. Details in [CLAUDE.md](./CLAUDE.md)'s "Hallucination
+safeguards" section.
 
 ## Current limitations
 
